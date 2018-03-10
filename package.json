@@ -1,0 +1,20 @@
+{
+  "name": "plasma",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "~4.11.1",
+    "ganache-cli": "^6.0.3",
+    "keccak": "^1.4.0",
+    "rlp": "^2.0.0",
+    "truffle": "^4.0.6",
+    "web3": "^1.0.0-beta.27"
+  },
+  "engines": {
+    "node": ">=4.3.2"
+  }
+}
