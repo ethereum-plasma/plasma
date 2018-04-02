@@ -77,39 +77,36 @@ const TxType = {
 let txPool = [];
 let utxo = [];
 
-const createDepositTransactions = async (blockNumber, txs, deposits) => {
-    for (let i = 0; i < deposits.length; i++) {
-        let owner = deposits[i].from;
-        let amount = parseInt(deposits[i].amount);
-        let tx = new Transaction(0, 0, 0, 0, 0, 0, 0, 0,
-            owner, amount, 0, 0, 0, TxType.DEPOSIT);
-        await updateUTXO(blockNumber, tx, txs);
-        await createMergeTransactions(blockNumber, txs, tx.newOwner1);
-    }
+const createDepositTransactions = (deposits) => {
+    return deposits.map(deposit => {
+        const owner = deposit.from;
+        const amount = parseInt(deposit.amount);
+        return new Transaction(0, 0, 0, 0, 0, 0, 0, 0,
+                               owner, amount, 0, 0, 0, TxType.DEPOSIT);
+    });
 };
 
-const createWithdrawalTransactions = async (blockNumber, txs, withdrawals) => {
-    for (let i = 0; i < withdrawals.length; i++) {
-        let blkNum = parseInt(withdrawals[i].exitBlockNumber);
-        let txIndex = parseInt(withdrawals[i].exitTxIndex);
-        let oIndex = parseInt(withdrawals[i].exitOIndex);
-        let tx = new Transaction(blkNum, txIndex, oIndex, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, TxType.WITHDRAW);
-        await updateUTXO(blockNumber, tx, txs);
-    }
+const createWithdrawalTransactions = (withdrawals) => {
+    return withdrawals.map(withdrawal => {
+        const blkNum = parseInt(withdrawal.exitBlockNumber);
+        const txIndex = parseInt(withdrawal.exitTxIndex);
+        const oIndex = parseInt(withdrawal.exitOIndex);
+        return new Transaction(blkNum, txIndex, oIndex, 0, 0, 0, 0, 0,
+                               0, 0, 0, 0, 0, TxType.WITHDRAW);
+    });
 };
 
-const createMergeTransactions = async (blockNumber, txs, owner) => {
-    let indexes = getTwoUTXOsByAddress(owner);
-    while (indexes[0] !== -1 && indexes[1] !== -1) {
-        let utxoA = utxo[indexes[0]];
-        let utxoB = utxo[indexes[1]];
-        let tx = new Transaction(
-            utxoA.blkNum, utxoA.txIndex, utxoA.oIndex, 0,
-            utxoB.blkNum, utxoB.txIndex, utxoB.oIndex, 0,
-            owner, utxoA.denom + utxoB.denom, 0, 0, 0, TxType.MERGE);
-        await updateUTXO(blockNumber, tx, txs);
-        indexes = getTwoUTXOsByAddress(owner);
+const createMergeTransaction = (owner) => {
+    const indexes = getTwoUTXOsByAddress(owner);
+    if (indexes[0] !== -1 && indexes[1] !== -1) {
+        const utxoA = utxo[indexes[0]];
+        const utxoB = utxo[indexes[1]];
+        return new Transaction(utxoA.blkNum, utxoA.txIndex, utxoA.oIndex, 0,
+                               utxoB.blkNum, utxoB.txIndex, utxoB.oIndex, 0,
+                               owner, utxoA.denom + utxoB.denom, 0, 0, 0,
+                               TxType.MERGE);
+    } else {
+        return null;
     }
 };
 
@@ -138,7 +135,12 @@ const createTransaction = async (data) => {
     let signature = await geth.signTransaction(tx.toString(false), data.from);
     tx.setSignature(signature);
 
-    txPool.push(tx);
+    if (await isValidTransaction(tx)) {
+        spendUTXO(tx);
+        txPool.push(tx);
+    } else {
+        throw 'Invalid transaction';
+    }
     return tx;
 }
 
@@ -195,50 +197,82 @@ const isValidTransaction = async (tx) => {
         }
     }
     return denom === tx.denom1 + tx.denom2 + tx.fee;
-}
+};
 
-const updateUTXO = async (blockNumber, tx, collectedTxs) => {
-    if (await isValidTransaction(tx)) {
-        if (tx.blkNum1 !== 0) {
-            let index = getUTXOByIndex(tx.blkNum1, tx.txIndex1, tx.oIndex1);
+const spendUTXO = (tx) => {
+    if (tx.blkNum1 !== 0) {
+        const index = getUTXOByIndex(tx.blkNum1, tx.txIndex1, tx.oIndex1);
+        if (index !== -1) {
             utxo.splice(index, 1);
         }
-        if (tx.blkNum2 !== 0) {
-            let index = getUTXOByIndex(tx.blkNum2, tx.txIndex2, tx.oIndex2);
+    }
+    if (tx.blkNum2 !== 0) {
+        const index = getUTXOByIndex(tx.blkNum2, tx.txIndex2, tx.oIndex2);
+        if (index !== -1) {
             utxo.splice(index, 1);
         }
-        let txIndex = collectedTxs.length;
-        if (tx.newOwner1 !== 0 && tx.denom1 !== 0) {
-            utxo.push(new UTXO(blockNumber, txIndex, 0, tx.newOwner1, tx.denom1));
-        }
-        if (tx.newOwner2 !== 0 && tx.denom2 !== 0) {
-            utxo.push(new UTXO(blockNumber, txIndex, 1, tx.newOwner2, tx.denom2));
-        }
-        collectedTxs.push(tx.toString(true));
+    }
+};
+
+const createUTXO = (blockNumber, tx, txIndex) => {
+    if (tx.newOwner1 !== 0 && tx.denom1 !== 0) {
+        utxo.push(new UTXO(blockNumber, txIndex, 0, tx.newOwner1, tx.denom1));
+    }
+    if (tx.newOwner2 !== 0 && tx.denom2 !== 0) {
+        utxo.push(new UTXO(blockNumber, txIndex, 1, tx.newOwner2, tx.denom2));
     }
 };
 
 const collectTransactions = async (blockNumber, deposits, withdrawals) => {
-    let utxoCopy = utxo.slice();
-    let txs = [];
+    const txs = [];
 
     if (deposits.length > 0) {
         console.log('Deposit transactions found.');
         console.log(deposits);
-        await createDepositTransactions(blockNumber, txs, deposits);
+        const depositTxs = await createDepositTransactions(deposits);
+        for (let i = 0; i < depositTxs.length; i++) {
+            const tx = depositTxs[i];
+            createUTXO(blockNumber, tx, txs.length);
+            txs.push(tx.toString(true));
+
+            const mergeTx = await createMergeTransaction(tx.newOwner1);
+            if (mergeTx !== null) {
+                spendUTXO(mergeTx);
+                createUTXO(blockNumber, mergeTx, txs.length);
+                txs.push(mergeTx.toString(true));
+            }
+        }
     }
 
     if (withdrawals.length > 0) {
         console.log('Withdrawals detected.');
         console.log(withdrawals);
-        await createWithdrawalTransactions(blockNumber, txs, withdrawals);
+        const withdrawalTxs = await createWithdrawalTransactions(withdrawals);
+        for (let i = 0; i < withdrawalTxs.length; i++) {
+            const tx = withdrawalTxs[i];
+            spendUTXO(tx);
+            txs.push(tx.toString(true));
+        }
     }
 
     for (let i = 0; i < txPool.length; i++) {
-        let tx = txPool[i];
-        await updateUTXO(blockNumber, tx, txs);
-        await createMergeTransactions(blockNumber, txs, tx.newOwner1);
-        await createMergeTransactions(blockNumber, txs, tx.newOwner2);
+        const tx = txPool[i];
+        createUTXO(blockNumber, tx, txs.length);
+        txs.push(tx.toString(true));
+        txPool.splice(i, 1);
+
+        const mergeTx1 = await createMergeTransaction(tx.newOwner1);
+        if (mergeTx1 !== null) {
+            spendUTXO(mergeTx1);
+            createUTXO(blockNumber, mergeTx1, txs.length);
+            txs.push(mergeTx1.toString(true));
+        }
+        const mergeTx2 = await createMergeTransaction(tx.newOwner2);
+        if (mergeTx2 !== null) {
+            spendUTXO(mergeTx2);
+            createUTXO(blockNumber, mergeTx2, txs.length);
+            txs.push(mergeTx2.toString(true));
+        }
 
         // Limit transactions per block to power of 2 on purpose for the
         // convenience of building Merkle tree.
@@ -248,7 +282,7 @@ const collectTransactions = async (blockNumber, deposits, withdrawals) => {
     }
 
     // Fill empty string if transactions are less than 256.
-    let len = txs.length;
+    const len = txs.length;
     for (let i = len; i < 256; i++) {
         txs.push("");
     }
