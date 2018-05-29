@@ -3,7 +3,6 @@
 const createKeccakHash = require('keccak');
 const RLP = require('rlp');
 
-const geth = require("./geth");
 const utils = require("./utils");
 
 class Transaction {
@@ -110,7 +109,7 @@ const createMergeTransaction = (owner) => {
     }
 };
 
-const createTransaction = async (data) => {
+const createTransaction = async (data, geth) => {
     let index = getUTXOByAddress(data.from);
     if (index === -1) {
         throw 'No asset found';
@@ -135,7 +134,7 @@ const createTransaction = async (data) => {
     let signature = await geth.signTransaction(tx.toString(false), data.from);
     tx.setSignature(signature);
 
-    if (await isValidTransaction(tx)) {
+    if (await isValidTransaction(tx, geth)) {
         spendUTXO(tx);
         txPool.push(tx);
     } else {
@@ -170,7 +169,7 @@ const getUTXOByIndex = (blkNum, txIndex, oIndex) => {
     return -1;
 };
 
-const isValidTransaction = async (tx) => {
+const isValidTransaction = async (tx, geth) => {
     if (tx.type !== TxType.NORMAL) {
         return true;
     }

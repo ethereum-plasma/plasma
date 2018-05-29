@@ -4,23 +4,27 @@ const Web3 = require("web3");
 
 const utils = require("./utils");
 const artifacts = require("./build/contracts/PlasmaChainManager.json");
-const contractConfig = require("./config");
 
 const provider = new Web3.providers.HttpProvider('http://localhost:8545');
 const web3 = new Web3(provider);
 
-const plasmaContract = new web3.eth.Contract(artifacts.abi, contractConfig.plasmaContractAddress, {gas: 1000000});
+var plasmaContract, plasmaOperator;
+
+const init = (contractAddress, operatorAddress) => {
+    plasmaContract = new web3.eth.Contract(artifacts.abi, contractAddress, {gas: 1000000});
+    plasmaOperator = operatorAddress;
+}
 
 const submitBlockHeader = async (header) => {
     let result = await plasmaContract.methods.submitBlockHeader(header).send({
-        from: contractConfig.plasmaOperatorAddress, gas: 300000
+        from: plasmaOperator, gas: 300000
     });
     let ev = result.events.HeaderSubmittedEvent.returnValues;
     console.log(ev);
 };
 
 const signBlock = async (message) => {
-    return await web3.eth.sign(message, contractConfig.plasmaOperatorAddress);
+    return await web3.eth.sign(message, plasmaOperator);
 };
 
 const signTransaction = async (message, address) => {
@@ -90,6 +94,6 @@ const getWithdrawals = async (blockNumber) => {
     return withdrawalEvents.map(ev => ev.returnValues);
 };
 
-module.exports = {signBlock, signTransaction, submitBlockHeader, deposit,
+module.exports = {init, signBlock, signTransaction, submitBlockHeader, deposit,
     getDeposits, isValidSignature, startWithdrawal, challengeWithdrawal,
     finalizeWithdrawal, getWithdrawals};

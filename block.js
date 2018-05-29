@@ -3,7 +3,6 @@
 const crypto = require('crypto');
 
 const tx = require("./transaction");
-const geth = require("./geth");
 const utils = require("./utils");
 
 const Merkle = require("./merkle");
@@ -85,7 +84,7 @@ const getGenesisBlock = () => {
 
 let blockchain = [getGenesisBlock()];
 
-const generateNextBlock = async () => {
+const generateNextBlock = async (geth) => {
     let previousBlock = getLatestBlock();
     let previousHash = previousBlock.hash;
     let nextIndex = previousBlock.blockHeader.blockNumber + 1;

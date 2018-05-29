@@ -2,14 +2,14 @@
 
 const express = require("express");
 const bodyParser = require('body-parser');
+const minimist = require('minimist');
 
 const block = require("./block");
 const tx = require("./transaction");
+const config = require("./config");
 const geth = require("./geth");
 
-const http_port = process.env.HTTP_PORT || 3001;
-
-const initHttpServer = () => {
+const initHttpServer = (http_port) => {
     const app = express();
     app.use(bodyParser.json());
 
@@ -18,14 +18,14 @@ const initHttpServer = () => {
         res.send(JSON.stringify(block.getBlocks().map(b => b.printBlock())));
     });
     app.post('/mineBlock', async (req, res) => {
-        const newBlock = await block.generateNextBlock();
+        const newBlock = await block.generateNextBlock(geth);
         res.send(newBlock.printBlock());
     });
 
     // Transaction related
     app.post('/transact', async (req, res) => {
         try {
-            const rawTx = await tx.createTransaction(req.body);
+            const rawTx = await tx.createTransaction(req.body, geth);
             console.log('New transaction created: ' + JSON.stringify(rawTx));
             res.send(rawTx.toString(true));
         } catch (e) {
@@ -70,4 +70,14 @@ const initHttpServer = () => {
     app.listen(http_port, () => console.log('Listening http on port: ' + http_port));
 };
 
-initHttpServer();
+const main = () => {
+    const argv = minimist(process.argv.slice(2), { string: ["port", "contract", "operator"]});
+    const http_port = argv.port || 3001;
+    const contract_address = argv.contract || config.plasmaContractAddress;
+    const operator_address = argv.operator || config.plasmaOperatorAddress;
+
+    geth.init(contract_address, operator_address);
+    initHttpServer(http_port);
+};
+
+main();

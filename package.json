@@ -10,6 +10,7 @@
     "express": "~4.11.1",
     "ganache-cli": "^6.0.3",
     "keccak": "^1.4.0",
+    "minimist": "^1.2.0",
     "rlp": "^2.0.0",
     "truffle": "^4.0.6",
     "web3": "^1.0.0-beta.27"
