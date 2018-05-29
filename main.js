@@ -34,8 +34,8 @@ const initHttpServer = () => {
     });
 
     // Deposit related
-    app.post('/deposit', (req, res) => {
-        geth.deposit(req.body.address, req.body.amount);
+    app.post('/deposit', async (req, res) => {
+        await geth.deposit(req.body.address, req.body.amount);
         res.send();
     });
 
