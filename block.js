@@ -94,7 +94,6 @@ const generateNextBlock = async (geth) => {
     let withdrawals = await geth.getWithdrawals(nextIndex - 1);
     let transactions = await tx.collectTransactions(nextIndex, deposits, withdrawals);
     let newBlock = new Block(nextIndex, previousHash, transactions);
-
     // Operator signs the new block.
     let messageToSign = utils.addHexPrefix(newBlock.blockHeader.toString(false));
     let signature = await geth.signBlock(messageToSign);
@@ -107,7 +106,7 @@ const generateNextBlock = async (geth) => {
 
     // Submit the block header to plasma contract.
     let hexPrefixHeader = utils.addHexPrefix(newBlock.blockHeader.toString(true));
-    geth.submitBlockHeader(hexPrefixHeader);
+    await geth.submitBlockHeader(hexPrefixHeader);
 
     return newBlock;
 };
