@@ -99,14 +99,14 @@ const generateNextBlock = async (geth) => {
     let signature = await geth.signBlock(messageToSign);
     newBlock.blockHeader.setSignature(signature);
 
+    // Submit the block header to plasma contract.
+    let hexPrefixHeader = utils.addHexPrefix(newBlock.blockHeader.toString(true));
+    await geth.submitBlockHeader(hexPrefixHeader);
+
     // Add the new block to blockchain.
     console.log('New block added.');
     console.log(newBlock.printBlock());
     blockchain.push(newBlock);
-
-    // Submit the block header to plasma contract.
-    let hexPrefixHeader = utils.addHexPrefix(newBlock.blockHeader.toString(true));
-    await geth.submitBlockHeader(hexPrefixHeader);
 
     return newBlock;
 };
