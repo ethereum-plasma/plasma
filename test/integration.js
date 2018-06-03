@@ -53,10 +53,37 @@ contract('PlasmaChainManager', function(accounts) {
     var server = await runServer(contractAddress, operatorAddress);
 
     try {
-      await request('POST', '/deposit', JSON.stringify({address: accounts[0], amount: 0.02}));
+      await request('POST', '/deposit', JSON.stringify({address: accounts[0], amount: 0.2}));
       await request('POST', '/mineBlock');
       var utxo = await request('GET', '/utxo');
-      assert.equal(utxo[0].denom, 20000000000000000);
+      assert.equal(utxo[0].denom, 200000000000000000);
+    } catch(e) {
+      throw e;
+    } finally {
+      server.kill();
+    }
+  });
+
+  it("transact", async () => {
+    var plasmaChainManager = await PlasmaChainManager.deployed();
+    var contractAddress = plasmaChainManager.address;
+    var operatorAddress = accounts[0];
+    var server = await runServer(contractAddress, operatorAddress);
+
+    try {
+      await request('POST', '/deposit', JSON.stringify({address: accounts[1], amount: 0.5}));
+      await request('POST', '/mineBlock');
+      await request('POST', '/transact', JSON.stringify({from: accounts[1], to: accounts[2], amount: 0.3}));
+      await request('POST', '/mineBlock');
+      var utxo = await request('GET', '/utxo');
+
+      for (i = 0; i < utxo.length; i++) {
+        if (utxo[i].owner === accounts[1]) {
+          assert.equal(utxo[i].denom, 190000000000000000);
+        } else if (utxo[i].owner === accounts[2]) {
+          assert.equal(utxo[i].denom, 300000000000000000);
+        }
+      }
     } catch(e) {
       throw e;
     } finally {
