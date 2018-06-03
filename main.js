@@ -18,8 +18,12 @@ const initHttpServer = (http_port) => {
         res.send(JSON.stringify(block.getBlocks().map(b => b.printBlock())));
     });
     app.post('/mineBlock', async (req, res) => {
-        const newBlock = await block.generateNextBlock(geth);
-        res.send(newBlock.printBlock());
+        try {
+            const newBlock = await block.generateNextBlock(geth);
+            res.send(JSON.stringify(newBlock.printBlock()));
+        } catch (e) {
+            res.send(JSON.stringify(e));
+        }
     });
 
     // Transaction related
@@ -27,9 +31,9 @@ const initHttpServer = (http_port) => {
         try {
             const rawTx = await tx.createTransaction(req.body, geth);
             console.log('New transaction created: ' + JSON.stringify(rawTx));
-            res.send(rawTx.toString(true));
+            res.send(JSON.stringify(rawTx.toString(true)));
         } catch (e) {
-            res.send(e);
+            res.send(JSON.stringify(e));
         }
     });
 
