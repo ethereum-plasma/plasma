@@ -145,7 +145,7 @@ const createTransaction = async (data, geth) => {
 
 const getUTXOByAddress = (owner, start = 0) => {
     for (let i = start; i < utxo.length; i++) {
-        if (utxo[i].owner === owner) {
+        if (utxo[i].owner.toLowerCase() === owner.toLowerCase()) {
             return i;
         }
     }
