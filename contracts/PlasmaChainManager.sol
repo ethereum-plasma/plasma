@@ -12,8 +12,9 @@ contract PlasmaChainManager {
 
     bytes constant PersonalMessagePrefixBytes = "\x19Ethereum Signed Message:\n96";
     uint32 constant blockHeaderLength = 161;
-    uint256 constant exisAgeOffset = 7 days;
-    uint256 constant exitWaitOffset = 14 days;
+
+    uint256 exitAgeOffset;
+    uint256 exitWaitOffset;
 
     struct BlockHeader {
         uint256 blockNumber;
@@ -51,10 +52,12 @@ contract PlasmaChainManager {
     mapping(uint256 => WithdrawRecord) public withdrawRecords;
     MinHeapLib.Heap exits;
 
-    function PlasmaChainManager() public {
+    function PlasmaChainManager(uint256 exitAge, uint256 exitWait) public {
         owner = msg.sender;
         lastBlockNumber = 0;
         txCounter = 0;
+        exitAgeOffset = exitAge;
+        exitWaitOffset = exitWait;
     }
 
     event HeaderSubmittedEvent(address signer, uint32 blockNumber);
@@ -152,7 +155,7 @@ contract PlasmaChainManager {
         require(txOwner == msg.sender);
 
         // Generate a new withdrawal ID.
-        uint256 priority = max(header.timeSubmitted, now - exisAgeOffset);
+        uint256 priority = max(header.timeSubmitted, now - exitAgeOffset);
         withdrawalId = blockNumber * 1000000 + txIndex * 1000 + oIndex;
         WithdrawRecord storage record = withdrawRecords[withdrawalId];
         require(record.blockNumber == 0);
