@@ -10,5 +10,5 @@ module.exports = function(deployer) {
     deployer.link(minHeapLib, PlasmaChainManager);
     deployer.link(arrayLib, PlasmaChainManager);
     deployer.link(RLP, PlasmaChainManager);
-    deployer.deploy(PlasmaChainManager);
+    deployer.deploy(PlasmaChainManager, 7 * 86400, 14 * 86400);
 };

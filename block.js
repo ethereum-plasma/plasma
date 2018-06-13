@@ -3,7 +3,6 @@
 const crypto = require('crypto');
 
 const tx = require("./transaction");
-const geth = require("./geth");
 const utils = require("./utils");
 
 const Merkle = require("./merkle");
@@ -85,7 +84,7 @@ const getGenesisBlock = () => {
 
 let blockchain = [getGenesisBlock()];
 
-const generateNextBlock = async () => {
+const generateNextBlock = async (geth) => {
     let previousBlock = getLatestBlock();
     let previousHash = previousBlock.hash;
     let nextIndex = previousBlock.blockHeader.blockNumber + 1;
@@ -101,14 +100,14 @@ const generateNextBlock = async () => {
     let signature = await geth.signBlock(messageToSign);
     newBlock.blockHeader.setSignature(signature);
 
+    // Submit the block header to plasma contract.
+    let hexPrefixHeader = utils.addHexPrefix(newBlock.blockHeader.toString(true));
+    await geth.submitBlockHeader(hexPrefixHeader);
+
     // Add the new block to blockchain.
     console.log('New block added.');
     console.log(newBlock.printBlock());
     blockchain.push(newBlock);
-
-    // Submit the block header to plasma contract.
-    let hexPrefixHeader = utils.addHexPrefix(newBlock.blockHeader.toString(true));
-    geth.submitBlockHeader(hexPrefixHeader);
 
     return newBlock;
 };

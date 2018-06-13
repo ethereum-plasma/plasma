@@ -25,11 +25,11 @@ A withdrawal is initiated by calling the plasma contract. After creating a withd
 2. Testrpc: A test Ethereum RPC client for fast development. Here, we use [ganache-cli](https://github.com/trufflesuite/ganache-cli). If you prefer a GUI version, you could replace it with [ganache](http://truffleframework.com/ganache/). Note that you could also launch an Ethereum private chain (geth) to replace testrpc.
 
 ## Run
-1. Install dependency.
+1. Install dependency
 ```
 npm install
 ```
-2. Run a testrpc.
+2. Run ganache
 ```
 ganache-cli
 ```
@@ -65,7 +65,30 @@ If you need to deploy contracts on this testrpc again, don't forget to add the `
     2. Choose one of the initial addresses as the operator address, for example, `0x87dbd8ab1bd9d4fce07db12743594a5f456435ff`.
 6. Run the plasma chain.
 ```
-HTTP_PORT=3001 npm start
+npm start
+```
+or
+```
+node main.js [options]
+```
+the available options are:
+
+|Option|Description|
+|---|---|
+|--port|Specify HTTP API port, default 3001|
+|--contract|Specify contract address, otherwise use value in config.js|
+|--operator|Specify operator address, otherwise use value in config.js|
+
+## Testing
+
+1. Run ganache
+```
+ganache-cli
+```
+
+2. Run tests
+```
+truffle test
 ```
 
 ## HTTP API
